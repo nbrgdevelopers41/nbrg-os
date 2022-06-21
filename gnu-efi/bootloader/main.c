@@ -26,6 +26,14 @@ typedef struct {
   void* glyphBuffer;
 } PSF1_FONT;  // The PSF1 font
 
+typedef struct {
+  Framebuffer* framebuffer;
+  PSF1_FONT* psf1_Font;
+  EFI_MEMORY_DESCRIPTOR* mMap;
+  UINTN mMapSize;
+  UINTN mMapDescSize;
+} BootInfo;  // Boot Info Struct to be passed to the kernel
+
 // Prototypes
 int memcmp(const void* aptr,
            const void* bptr,
@@ -117,9 +125,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable) {
   Print(L"Kernel Loaded Successfully. Continuing Boot.\n\r");
 
   // The reference to the Kernel
-  void (*Kernel)(Framebuffer*, PSF1_FONT*) =
-      ((__attribute__((sysv_abi)) void (*)(Framebuffer*,
-                                           PSF1_FONT*))header.e_entry);
+  void (*Kernel)(BootInfo*) =
+      ((__attribute__((sysv_abi)) void (*)(BootInfo*))header.e_entry);
 
   // Load the console fonts
   PSF1_FONT* zapLight18Font =
@@ -143,7 +150,31 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable) {
       newBuffer->BaseAddress, newBuffer->BufferSize, newBuffer->Width,
       newBuffer->Height, newBuffer->PixelsPerScanLine);
 
-  Kernel(newBuffer, zapLight18Font);
+  EFI_MEMORY_DESCRIPTOR* Map = NULL;
+  UINTN mMapSize,
+      mMapKey;     // Size of the map in bytes, MapKey to exit the boot services
+  UINTN DescSize;  // Descriptor Size
+  UINT32 DescVersion;  // Version of the Descriptor.
+
+  {
+    SystemTable->BootServices->GetMemoryMap(&mMapSize, Map, &mMapKey, &DescSize,
+                                            &DescVersion);
+    SystemTable->BootServices->AllocatePool(EfiLoaderData, mMapSize,
+                                            (void**)&Map);
+    SystemTable->BootServices->GetMemoryMap(&mMapSize, Map, &mMapKey, &DescSize,
+                                            &DescVersion);
+  }
+
+  BootInfo bootInfo;
+  bootInfo.framebuffer = newBuffer;
+  bootInfo.psf1_Font = zapLight18Font;
+  bootInfo.mMap = Map;
+  bootInfo.mMapSize = mMapSize;
+  bootInfo.mMapDescSize = DescSize;
+
+  SystemTable->BootServices->ExitBootServices(ImageHandle, mMapKey);
+
+  Kernel(&bootInfo);
 
   return EFI_SUCCESS;  // EXIT THE Operating System.
 }
