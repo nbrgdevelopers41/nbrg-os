@@ -1,8 +1,11 @@
 #include <stdint.h>
 
 #include "BasicRenderer.h"
+#include "Bitmap.h"
+#include "PageFrameAllocator.h"
 #include "cstr.h"
 #include "efiMemory.h"
+#include "memory.h"
 
 struct BootInfo {
   Framebuffer* framebuffer;
@@ -12,6 +15,8 @@ struct BootInfo {
   uint64_t mMapDescSize;
 };
 
+uint8_t testBuffer[20];
+
 extern "C" void _start(BootInfo* bootInfo) {
   BasicRenderer newRenderer =
       BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_Font);
@@ -19,18 +24,26 @@ extern "C" void _start(BootInfo* bootInfo) {
   newRenderer.Print(
       "Hello User! Welcome to NBRG-OS. This is a test line. Thank you.");
 
-  uint64_t numEntries = bootInfo->mMapSize / bootInfo->mMapDescSize;
+  PageFrameAllocator pageFrameAllocator;
+  pageFrameAllocator.ReadEFIMemoryMap(bootInfo->Map, bootInfo->mMapSize,
+                                      bootInfo->mMapDescSize);
 
-  for (size_t i = 0; i < numEntries; i++) {
-    EFI_MEMORY_DESCRIPTOR* desc =
-        (EFI_MEMORY_DESCRIPTOR*)((uint64_t)bootInfo->Map +
-                                 i * bootInfo->mMapDescSize);
-    newRenderer.NewLine();
-    newRenderer.Print(EFI_MEMORY_TYPE_STRINGS[desc->type]);
-    newRenderer.Print(" ");
-    newRenderer.Print(to_string(desc->numPages * 4096 / 1024));
-    newRenderer.Print(" KB");
-  }
+  newRenderer.NewLine();
+
+  newRenderer.Print("Free RAM: ");
+  newRenderer.Print(to_string(pageFrameAllocator.GetfreeRAM() / 1024));
+  newRenderer.Print(" KB");
+  newRenderer.NewLine();
+
+  newRenderer.Print("In-Use RAM: ");
+  newRenderer.Print(to_string(pageFrameAllocator.GetInUseRAM() / 1024));
+  newRenderer.Print(" KB");
+  newRenderer.NewLine();
+
+  newRenderer.Print("Reserved RAM: ");
+  newRenderer.Print(to_string(pageFrameAllocator.GetReservedRAM() / 1024));
+  newRenderer.Print(" KB");
+  newRenderer.NewLine();
 
   return;
 }
