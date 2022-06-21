@@ -17,16 +17,25 @@ struct BootInfo {
 
 uint8_t testBuffer[20];
 
+extern uint64_t _KernelStart;
+extern uint64_t _KernelEnd;
+
 extern "C" void _start(BootInfo* bootInfo) {
   BasicRenderer newRenderer =
       BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_Font);
 
   newRenderer.Print(
-      "Hello User! Welcome to NBRG-OS. This is a test line. Thank you.");
+      "Hello User! Welcome to NBRG-OS. This is a test. Thank you.");
 
   PageFrameAllocator pageFrameAllocator;
   pageFrameAllocator.ReadEFIMemoryMap(bootInfo->Map, bootInfo->mMapSize,
                                       bootInfo->mMapDescSize);
+
+  uint64_t kernelSize = (uint64_t)&_KernelEnd - (uint64_t)&_KernelStart;
+  uint64_t kernelPages = (uint64_t)kernelSize / 4096 + 1;
+
+  pageFrameAllocator.LockPages(&_KernelStart,
+                               kernelPages);  // Locks the kernel memory pages
 
   newRenderer.NewLine();
 
@@ -45,6 +54,11 @@ extern "C" void _start(BootInfo* bootInfo) {
   newRenderer.Print(" KB");
   newRenderer.NewLine();
 
+  for (int i = 0; i < 20; i++) {
+    void* address = pageFrameAllocator.RequestPage();
+    newRenderer.Print(to_hstring((uint64_t)address));
+    newRenderer.NewLine();
+  }
   return;
 }
 

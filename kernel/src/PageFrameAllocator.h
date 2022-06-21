@@ -14,6 +14,9 @@ class PageFrameAllocator {
   // The bitmap which stores the system memory info.
   Bitmap PageBitmap;
 
+  // Locks and returns a free memory page that can be used by the requester.
+  void* RequestPage();
+
   // Locks a single page
   void LockPage(void* address);
 
