@@ -2,13 +2,40 @@
 
 #include "BasicRenderer.h"
 #include "cstr.h"
+#include "efiMemory.h"
 
-extern "C" void _start(Framebuffer* framebuffer, PSF1_FONT* psf1_Font) {
-  BasicRenderer newRenderer = BasicRenderer(framebuffer, psf1_Font);
+struct BootInfo {
+  Framebuffer* framebuffer;
+  PSF1_FONT* psf1_Font;
+  EFI_MEMORY_DESCRIPTOR* Map;
+  uint64_t mMapSize;
+  uint64_t mMapDescSize;
+};
+
+extern "C" void _start(BootInfo* bootInfo) {
+  BasicRenderer newRenderer =
+      BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_Font);
 
   newRenderer.Print(
       "Hello User! Welcome to NBRG-OS. This is a test line. Thank you.");
 
+  uint64_t numEntries = bootInfo->mMapSize / bootInfo->mMapDescSize;
+
+  for (size_t i = 0; i < numEntries; i++) {
+    EFI_MEMORY_DESCRIPTOR* desc =
+        (EFI_MEMORY_DESCRIPTOR*)((uint64_t)bootInfo->Map +
+                                 i * bootInfo->mMapDescSize);
+    newRenderer.NewLine();
+    newRenderer.Print(EFI_MEMORY_TYPE_STRINGS[desc->type]);
+    newRenderer.Print(" ");
+    newRenderer.Print(to_string(desc->numPages * 4096 / 1024));
+    newRenderer.Print(" KB");
+  }
+
+  return;
+}
+
+void printTest(BasicRenderer newRenderer) {
   newRenderer.Print("Today's Date is: ");
   newRenderer.Print(to_string((uint64_t)17062022));
   newRenderer.Print(" And A random number is: ");
@@ -24,6 +51,4 @@ extern "C" void _start(Framebuffer* framebuffer, PSF1_FONT* psf1_Font) {
   newRenderer.Print(" And The Hex Color very shortened is: ");
   newRenderer.Print(to_hstring((uint8_t)0x00cc99));
   newRenderer.Print(".");
-
-  return;
 }

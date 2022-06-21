@@ -15,12 +15,16 @@ void BasicRenderer::Print(const char* str) {
   while (*chr != 0) {
     PutChar(*chr, CursorPosition.X, CursorPosition.Y);
     CursorPosition.X += 8;
-    if (CursorPosition.X >= (width * 0.93)) {
+    if (CursorPosition.X >= (width - 50)) {
       CursorPosition.X = 50;
       CursorPosition.Y += 18;
     }
     chr++;
   }
+}
+
+void BasicRenderer::NewLine() {
+  CursorPosition = {50, CursorPosition.Y + 18};
 }
 
 void BasicRenderer::PutChar(char chr,
