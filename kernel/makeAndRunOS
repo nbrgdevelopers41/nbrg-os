@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# disable functionality for building bootloader.
+#if "$1" != "no-bootloader"
+#then
+#  cd ../gnu-efi
+#  make bootloader
+#  cd ../kernel
+#fi
+
+make kernel
+make buildimg
+
+powershell.exe /C ./run
+clear
+echo "OS Execution Complete. Exiting."

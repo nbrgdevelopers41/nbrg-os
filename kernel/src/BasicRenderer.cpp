@@ -8,6 +8,10 @@ BasicRenderer::BasicRenderer(Framebuffer* targetFramebuffer,
   CursorPosition = {50, 50};
 }
 
+void BasicRenderer::ResetCursorPosition() {
+  CursorPosition = {50, 50};
+}
+
 void BasicRenderer::Print(const char* str) {
   char* chr = (char*)str;
   unsigned int width = TargetFramebuffer->Width;

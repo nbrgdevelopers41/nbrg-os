@@ -7,6 +7,7 @@ class BasicRenderer {
   BasicRenderer(Framebuffer* targetFramebuffer, PSF1_FONT* psf1_font);
   void Print(const char* str);
   void NewLine();
+  void ResetCursorPosition();
   Coordinate CursorPosition;
   Framebuffer* TargetFramebuffer;
   PSF1_FONT* PSF1_Font;
